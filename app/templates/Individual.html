@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <style>
+    body { background-color: #1a1a1a; color: #eee; }
+    .individual-container {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      grid-template-rows: auto auto;
+      grid-template-areas:
+        "select lastMatches"
+        "rawStats chart";
+      gap: 20px;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .panel { background-color: #2a2a2a; border-radius: 6px; padding: 16px; }
+
+    /* 1. Selección de jugadora */
+    .player-select { grid-area: select; display: flex; flex-direction: column; align-items: center; }
+    .player-select h2 { margin-bottom: 12px; font-size: 1.3rem; }
+    .player-select .avatar-frame { position: relative; width: 120px; height: 120px; margin-bottom: 12px; }
+    .player-select img.avatar { width: 100%; height: 100%; object-fit: cover; border: 3px solid #48b30a; border-radius: 50%; }
+    .player-select img.flag   { position: absolute; bottom: 0; right: 0; width: 28px; height: 18px; border: 1px solid #fff; border-radius: 2px; }
+    .player-select select     { width: 100%; max-width: 250px; padding: 8px; background: #333; color: #eee; border: 1px solid #555; border-radius: 4px; font-size: 1rem; }
+
+    /* 2. Últimos partidos */
+    .last-matches { grid-area: lastMatches; }
+    .last-matches h2 { margin-bottom: 12px; font-size: 1.3rem; }
+    .last-matches .match { margin-bottom: 16px; }
+    .last-matches .match-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 1fr;
+      align-items: center;
+      background: #222;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .last-matches .player-entry { display: flex; align-items: center; gap: 8px; }
+    .last-matches img.avatar-sm { width: 32px; height: 32px; border: 2px solid #48b30a; border-radius: 50%; object-fit: cover; }
+    .last-matches img.flag-sm   { width: 24px; height: 16px; border: 1px solid #fff; border-radius: 2px; }
+    .last-matches .scores { text-align: center; font-size: 1.5rem; }
+    .last-matches .scores .green-text { color: #48b30a; font-weight: bold; }
+
+    /* 3. Estadísticas duras */
+    .rawStats { grid-area: rawStats; }
+    .rawStats h2 { margin-bottom: 12px; font-size: 1.3rem; }
+    .stat-table { width: 100%; border-collapse: collapse; }
+    .stat-table td { padding: 8px; border: 1px solid #444; }
+    .stat-table .sigla { color: #48b30a; font-weight: bold; }
+    .stat-table .desc, .stat-table .value { color: #fff; }
+
+    /* 4. Gráfico */
+    .chart { grid-area: chart; }
+    .chart h2 { margin-bottom: 12px; font-size: 1.3rem; }
+    .chart .filters { display: flex; gap: 12px; margin-bottom: 12px; }
+    .chart .filters select { padding: 6px; background: #333; color: #eee; border: 1px solid #555; border-radius: 4px; }
+    .chart .chart-placeholder { width: 100%; height: 400px; background: #111; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; font-style: italic; }
+  </style>
+
+  <div class="individual-container">
+    <!-- 1. Selección -->
+    <div class="panel player-select">
+      <h2>Selecciona una jugadora</h2>
+      <div class="avatar-frame">
+        <img id="sel-avatar" class="avatar" src="{{ url_for('static', filename='icono.png') }}" alt="">
+        <img id="sel-flag"   class="flag"   src="{{ url_for('static', filename='chile.png') }}" alt="">
+      </div>
+      <select id="player-select">
+        {% for player in players %}
+          <option value="{{ player.value }}|{{ player.country }}">{{ player.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- 2. Últimos partidos -->
+    <div class="panel last-matches">
+      <h2>Últimos partidos</h2>
+      <div id="matches-list"></div>
+    </div>
+
+    <!-- 3. Estadísticas duras -->
+    <div class="panel rawStats">
+      <h2>ESTADÍSTICAS <span id="stats-player-name"></span></h2>
+      <table class="stat-table">
+        <tbody id="stats-list"></tbody>
+      </table>
+    </div>
+
+    <!-- 4. Gráfico -->
+    <div class="panel chart">
+      <h2>Rendimiento por partido</h2>
+      <div class="filters">
+        <select><option>Todas superficies</option><option>Cemento</option><option>Tierra</option></select>
+        <select><option>Últimos 12 meses</option><option>2023</option><option>2022</option></select>
+        <select><option>Todos torneos</option><option>Grand Slam</option><option>Masters 1000</option></select>
+      </div>
+      <div class="chart-placeholder">[Aquí irá el gráfico de líneas]</div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const base = "{{ url_for('static', filename='') }}";
+      const sel = document.getElementById('player-select');
+      const avatar = document.getElementById('sel-avatar');
+      const flag = document.getElementById('sel-flag');
+      const statsList = document.getElementById('stats-list');
+      const statsName = document.getElementById('stats-player-name');
+      const matchesList = document.getElementById('matches-list');
+
+      const labels = {
+        "WNR": "Win Ratio",
+        "FSP": "% Primer Servicio",
+        "TPW": "Puntos Ganados",
+        "UFE": "Errores No Forzados",
+        "SSW": "Winners Servicio",
+        "NPA": "Net Points Attempted",
+        "DBF": "Dobles Faltas",
+        "SSP": "% Segundo Servicio",
+        "NPW": "Net Points Won",
+        "ACE": "Ases",
+        "BPC": "Break Points Convertidos",
+        "FNL": "First Net Loss",
+        "FSW": "First Serve Wins",
+        "BPW": "Break Points Ganados",
+        "ST1": "Stat 1",
+        "ST2": "Stat 2",
+        "ST3": "Stat 3",
+        "ST4": "Stat 4",
+        "ST5": "Stat 5"
+      };
+      const statFields = ["WNR","FSP","TPW","UFE","SSW","NPA","DBF","SSP","NPW","ACE","BPC","FNL","FSW","BPW","ST1","ST2","ST3","ST4","ST5"];
+
+      function updatePlayer() {
+        const [img, country] = sel.value.split('|');
+        const name = sel.options[sel.selectedIndex].text;
+        avatar.src = `${base}${img}.png`;
+        flag.src = `${base}${country}.png`;
+        statsName.textContent = name;
+        statsList.innerHTML = '';
+        matchesList.innerHTML = '';
+
+        // Estadísticas duras
+        fetch('/stats_jugadora', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({jugadora: name})
+        })
+        .then(res => res.json())
+        .then(data => {
+          statFields.forEach(f => {
+            const val = parseFloat(data[f]).toFixed(2);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><span class="sigla">${f}</span> <span class="desc">(${labels[f]})</span></td>
+              <td class="value">${val}</td>
+            `;
+            statsList.appendChild(tr);
+          });
+        });
+
+        // Últimos 3 partidos con sets ganados
+        fetch('/matches_jugadora', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({jugadora: name})
+        })
+        .then(res => res.json())
+        .then(matches => {
+          matches.forEach(m => {
+            const s1 = m.sets1;
+            const s2 = m.sets2;
+            const row = document.createElement('div');
+            row.className = 'match-row';
+            row.innerHTML = `
+              <div class="player-entry">
+                <img class="avatar-sm" src="${base}${m.Player1.value}.png">
+                <img class="flag-sm"   src="${base}${m.Player1.country}.png">
+                <span>${m.Player1.name}</span>
+              </div>
+              <div class="scores">
+                <span class="${s1>s2?'green-text':''}">${s1}</span> - <span class="${s2>s1?'green-text':''}">${s2}</span>
+              </div>
+              <div class="player-entry" style="justify-content:flex-end;">
+                <span>${m.Player2.name}</span>
+                <img class="flag-sm"   src="${base}${m.Player2.country}.png">
+                <img class="avatar-sm" src="${base}${m.Player2.value}.png">
+              </div>
+            `;
+            matchesList.appendChild(row);
+          });
+        });
+      }
+      sel.addEventListener('change', updatePlayer);
+      if (sel.value) updatePlayer();
+    });
+  </script>
+{% endblock %}

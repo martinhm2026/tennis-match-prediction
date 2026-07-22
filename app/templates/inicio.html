@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <style>
+    /* Hero con degradado sobre la imagen */
+    .hero {
+      position: relative;
+      width: 100%;
+      height: 450px;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.6)),
+        url('{{ url_for("static", filename="Inicio.jpg") }}') center/cover no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      text-align: center;
+      color: #fff;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+    }
+
+    /* Sección de descripción */
+    .descripcion {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #2a2a2a;
+      border-radius: 8px;
+      color: #eee;
+    }
+    .descripcion h2,
+    .descripcion h3 {
+      margin-top: 0;
+    }
+    .models {
+      list-style: disc inside;
+      margin-left: 20px;
+    }
+
+    /* Creadores */
+    .creadores {
+      max-width: 1000px;
+      margin: 40px auto;
+      text-align: center;
+    }
+    .grid-creadores {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .creador {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #333;
+      padding: 15px;
+      border-radius: 8px;
+      color: #eee;
+    }
+    .avatar {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 10px;
+    }
+    .avatar img.main {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: 3px solid #48b30a;
+      border-radius: 50%;
+    }
+    .avatar img.flag {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 24px;
+      height: 16px;
+      border: 1px solid #48b30a;
+      border-radius: 2px;
+    }
+    .nombre {
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    /* Barra de contacto */
+    .footer-bar {
+      background-color: #48b30a;
+      color: #fff;
+      text-align: center;
+      padding: 12px 0;
+      font-weight: bold;
+      margin-top: 40px;
+    }
+  </style>
+
+  <!-- Hero -->
+  <div class="hero">
+    "La predicción es un mundo de posibilidades, donde cada decisión puede cambiar el rumbo del futuro."
+  </div>
+
+  <!-- Descripción de la página -->
+  <section class="descripcion">
+    <h2>¿Qué puedes hacer aquí?</h2>
+    <p>
+      Explora el resultado más probable de cada partido de tenis femenino basándonos en datos
+      históricos detallados. Introduce los nombres de las dos jugadoras y obtén al instante
+      un porcentaje de victoria para cada una.
+    </p>
+    <p>
+      Navega por <strong>estadísticas completas</strong> de cada tenista: rendimiento en
+      torneos, efectividad de servicios, quiebres y más. Utiliza los filtros
+      interactivos para seleccionar rango de fechas, tipo de superficie o torneo
+      específico.
+    </p>
+    <p>
+      Consulta el <strong>ranking dinámico</strong> generado a partir de todos los resultados:
+      ordénalo por puntos, victorias consecutivas o rendimiento en Grand Slams.
+      Descarga tus búsquedas como CSV o comparte enlaces directos a cualquier estadística.
+    </p>
+    <p>
+      Todo en una interfaz intuitiva, con gráficos claros y tiempos de respuesta rápidos,
+      para que puedas tomar decisiones informadas o simplemente disfrutar analizando el
+      rendimiento de tus jugadoras favoritas.
+    </p>
+  </section>
+
+  <!-- Creadores -->
+  <section class="creadores">
+    <h2>Creadores de la página</h2>
+    <div class="grid-creadores">
+      {% for creator in creators %}
+        <div class="creador">
+          <div class="avatar">
+            <img class="main"
+                 src="{{ url_for('static', filename=creator.avatar) }}"
+                 alt="Avatar de {{ creator.name }}">
+            <img class="flag"
+                 src="{{ url_for('static', filename=creator.flag) }}"
+                 alt="Bandera de {{ creator.name }}">
+          </div>
+          <div class="nombre">{{ creator.name }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Barra de contacto -->
+  <div class="footer-bar">
+    Para más información al +569133
+  </div>
+{% endblock %}
