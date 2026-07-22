@@ -67,13 +67,6 @@ statistics.
 - `TPW`: Total points won.
 - `Result`: Binary match outcome.
 
-### Data Source
-
-- Platform: Kaggle
-- Dataset: [Add exact dataset name]
-- Source: [Add Kaggle dataset link]
-- License: [Add dataset license]
-
 The dataset is included for academic and educational purposes according
 to its original license.
 
